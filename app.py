@@ -20,7 +20,6 @@ st.set_page_config(page_title="GenAIlytics: AI Job Market Analyzer", layout="wid
 
 st.markdown("<h1 style='text-align:center;color:#4CAF50;'>📊 GenAIlytics: AI Job Market Analyzer</h1>", unsafe_allow_html=True)
 st.write("---")
-
 # --------------------
 # CLEAN DATA FUNCTION (पहले define करो)
 # --------------------
@@ -230,12 +229,12 @@ st.write("---")
 # --------------------
 # FINAL CONCLUSION
 # --------------------
-st.subheader("📌 Final Conclusion")
+st.subheader("📌 Final Conclusion – Global AI Job Market & Salary Trends 2025")
 st.markdown("""
-- 📈 Higher **experience** → Higher salary  
-- 👨‍💻 Certain **job titles** dominate the market  
-- 🌍 **Location** impacts salary variation  
-- 🤖 ML model confirms salary growth trend with experience  
-
-✨ Use filters (left sidebar) to explore insights for **specific jobs, locations, and salary ranges**.
-""")
+<li><b>Rapid Growth:</b> AI job demand continues to grow worldwide at a record pace.</li>
+<li><b>High Salaries:</b> AI roles offer premium pay, increasing with experience and specialization.</li>
+<li><b>Key Drivers:</b> Experience, job level, skills, and location strongly influence salaries.</li>
+<li><b>Remote & Hybrid Work:</b> Flexible work options are rising but still limited in some regions.</li>
+<li><b>Future Outlook:</b> AI talent shortage ensures salaries and opportunities will keep expanding.</li>
+</ul>
+""", unsafe_allow_html=True)
