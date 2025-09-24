@@ -1,3 +1,9 @@
 streamlit
-plotly
+pandas
+numpy
 requests
+nltk
+plotly
+scikit-learn
+
+
