@@ -190,6 +190,9 @@ st.write("---")
 # --------------------
 # PREDICTION MODEL
 # --------------------
+# --------------------
+# PREDICTION MODEL
+# --------------------
 st.subheader("🤖 Salary Prediction")
 
 if "salary_usd" in df_filtered.columns and "experience_yrs" in df_filtered.columns:
@@ -209,7 +212,6 @@ if "salary_usd" in df_filtered.columns and "experience_yrs" in df_filtered.colum
         pred_salary = model.predict([[exp_input]])[0]
         st.success(f"💰 Predicted Salary for {exp_input} years: **${pred_salary:,.0f} USD**")
 
-st.write("---")
 
 # --------------------
 # DIAGNOSIS
@@ -238,3 +240,4 @@ st.markdown("""
 <li><b>Future Outlook:</b> AI talent shortage ensures salaries and opportunities will keep expanding.</li>
 </ul>
 """, unsafe_allow_html=True)
+
