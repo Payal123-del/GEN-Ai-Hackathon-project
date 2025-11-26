@@ -229,15 +229,52 @@ if "salary_usd" in df_filtered.columns:
 st.write("---")
 
 # --------------------
-# FINAL CONCLUSION
+# FINAL DATA-DRIVEN INSIGHTS
 # --------------------
-st.subheader("📌 Final Conclusion – Global AI Job Market & Salary Trends 2025")
-st.markdown("""
-<li><b>Rapid Growth:</b> AI job demand continues to grow worldwide at a record pace.</li>
-<li><b>High Salaries:</b> AI roles offer premium pay, increasing with experience and specialization.</li>
-<li><b>Key Drivers:</b> Experience, job level, skills, and location strongly influence salaries.</li>
-<li><b>Remote & Hybrid Work:</b> Flexible work options are rising but still limited in some regions.</li>
-<li><b>Future Outlook:</b> AI talent shortage ensures salaries and opportunities will keep expanding.</li>
-</ul>
-""", unsafe_allow_html=True)
+st.subheader("📌 Data-Driven Insights – AI Job Market 2025")
+
+if not df_filtered.empty:
+    # 1️⃣ Top Locations by Number of Jobs
+    if "company_location" in df_filtered.columns:
+        top_locs = df_filtered["company_location"].value_counts().head(10)
+        fig_loc = px.bar(top_locs, title="Top Locations by Job Openings")
+        st.plotly_chart(fig_loc, use_container_width=True)
+
+    # 2️⃣ Average Salary by Experience Level
+    if "experience_yrs" in df_filtered.columns and "salary_usd" in df_filtered.columns:
+        avg_salary_exp = df_filtered.groupby("experience_yrs")["salary_usd"].mean().reset_index()
+        fig_exp = px.line(avg_salary_exp, x="experience_yrs", y="salary_usd",
+                          title="Average Salary vs Experience (Years)", markers=True)
+        st.plotly_chart(fig_exp, use_container_width=True)
+
+    # 3️⃣ Top Job Titles by Salary
+    if "job_title" in df_filtered.columns and "salary_usd" in df_filtered.columns:
+        top_salary_jobs = df_filtered.groupby("job_title")["salary_usd"].mean().sort_values(ascending=False).head(10)
+        fig_jobs = px.bar(top_salary_jobs, title="Top 10 Job Titles by Average Salary")
+        st.plotly_chart(fig_jobs, use_container_width=True)
+
+    # 4️⃣ Key Observations (Dynamic)
+    st.markdown("### 🔑 Key Observations")
+    obs = []
+    # Highest paying location
+    if "company_location" in df_filtered.columns and "salary_usd" in df_filtered.columns:
+        best_loc = df_filtered.groupby("company_location")["salary_usd"].mean().idxmax()
+        obs.append(f"💰 Highest average salary location: **{best_loc}**")
+    
+    # Experience impact
+    if "experience_yrs" in df_filtered.columns and "salary_usd" in df_filtered.columns:
+        corr = df_filtered[["experience_yrs", "salary_usd"]].corr().iloc[0,1]
+        obs.append(f"📈 Salary correlation with experience: **{corr:.2f}** (positive correlation)")
+
+    # Job titles with high salaries
+    if "job_title" in df_filtered.columns and "salary_usd" in df_filtered.columns:
+        high_salary_job = df_filtered.groupby("job_title")["salary_usd"].mean().idxmax()
+        obs.append(f"🏆 Top paying role: **{high_salary_job}**")
+
+    for o in obs:
+        st.markdown(f"- {o}")
+
+else:
+    st.info("No data available for generating insights. Please adjust filters or upload a dataset.")
+
 
