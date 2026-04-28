@@ -236,35 +236,3 @@ if not df_filtered.empty:
 
 else:
     st.info("No data available for generating insights. Please adjust filters or upload a dataset.")
-st.write("---")
-st.subheader("Ask AI about Job Data")
-
-client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
-user_question = st.text_input("Ask something about the dataset")
-
-if user_question:
-    try:
-        data_sample = df_filtered.head(50).to_string()
-
-        prompt = f"""
-        You are a data analyst.
-
-        Here is job dataset:
-        {data_sample}
-
-        Answer this question:
-        {user_question}
-        """
-
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3
-        )
-
-        answer = response.choices[0].message.content
-        st.success(answer)
-
-    except Exception as e:
-        st.error(f"Error: {e}")
