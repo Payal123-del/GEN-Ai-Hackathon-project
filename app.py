@@ -24,7 +24,7 @@ st.write("---")
 # --------------------
 @st.cache_data
 def clean_data(df: pd.DataFrame):
-    return df
+  return df
 
 
 # --------------------
