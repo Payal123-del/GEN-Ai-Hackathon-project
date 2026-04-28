@@ -10,46 +10,35 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 
-# NLTK
 nltk.download("stopwords", quiet=True)
 
-# --------------------
-# APP CONFIG
-# --------------------
 st.set_page_config(page_title="GenAIlytics: AI Job Market Analyzer", layout="wide")
 
 st.markdown("<h1 style='text-align:center;color:#4CAF50;'>📊 GenAIlytics: AI Job Market Analyzer</h1>", unsafe_allow_html=True)
 st.write("---")
-# --------------------
-# --------------------
 @st.cache_data
 def clean_data(df: pd.DataFrame):
     return df
 
 
-# --------------------
-# --------------------
 @st.cache_data
 def load_data():
     try:
         df_local = pd.read_csv("jobs_data.csv")
-        st.sidebar.success("✅ Loaded local 'jobdata.csv'")
+        st.sidebar.success("Uploaded Data successfully'jobdata.csv'")
         return df_local
     except FileNotFoundError:
-        st.sidebar.warning("⚠️ Local file 'jobdata.csv' not found. Please upload CSV below.")
+        st.sidebar.warning("Local file 'jobdata.csv' not found. Please upload CSV below.")
 
     uploaded = st.sidebar.file_uploader("Upload your CSV file", type=["csv"])
     if uploaded is not None:
-        st.sidebar.success("✅ Uploaded CSV loaded successfully!")
+        st.sidebar.success("Uploaded CSV loaded successfully!")
         return pd.read_csv(uploaded)
 
-    st.error("❌ No dataset available. Please provide 'jobdata.csv' locally or upload a file.")
+    st.error("No dataset available. Please provide 'jobdata.csv' locally or upload a file.")
     return pd.DataFrame()
 
 
-# --------------------
-# LOAD + CLEAN
-# --------------------
 df = load_data()
 if not df.empty:
     df = clean_data(df)
@@ -61,7 +50,6 @@ else:
 def clean_data(df: pd.DataFrame):
     df = df.copy()
 
-    # 🔥 Remove duplicate columns
     df = df.loc[:, ~df.columns.duplicated()]
 
     df.columns = [c.strip().lower() for c in df.columns]
@@ -113,8 +101,7 @@ def clean_data(df: pd.DataFrame):
     df.reset_index(drop=True, inplace=True)
     return df
 
-# --------------------
-st.sidebar.header("🔎 Filters")
+st.sidebar.header("Filters")
 
 job_filter = st.sidebar.multiselect(
     "Select Job Title",
@@ -138,7 +125,6 @@ salary_min, salary_max = st.sidebar.slider(
     ),
 )
 
-# Apply filters
 df_filtered = df.copy()
 if job_filter:
     df_filtered = df_filtered[df_filtered["job_title"].isin(job_filter)]
@@ -149,10 +135,7 @@ if "salary_usd" in df_filtered.columns:
         (df_filtered["salary_usd"] >= salary_min) & (df_filtered["salary_usd"] <= salary_max)
     ]
 
-# --------------------
-# KPIs
-# --------------------
-st.subheader("📌 Descriptive Statistics & KPIs")
+st.subheader("Descriptive Statistics & KPIs")
 if not df_filtered.empty and "salary_usd" in df_filtered.columns:
     c1, c2, c3 = st.columns(3)
     c1.metric("Average Salary (USD)", f"${df_filtered['salary_usd'].mean():,.0f}")
@@ -163,10 +146,7 @@ if not df_filtered.empty and "salary_usd" in df_filtered.columns:
 
 st.write("---")
 
-# --------------------
-# VISUAL ANALYSIS
-# --------------------
-st.subheader("📊 Analysis (Filtered)")
+st.subheader("Analysis (Filtered)")
 
 if "salary_usd" in df_filtered.columns and "experience_yrs" in df_filtered.columns:
     fig = px.scatter(df_filtered, x="experience_yrs", y="salary_usd",
@@ -181,10 +161,8 @@ if "job_title" in df_filtered.columns:
 
 st.write("---")
 
-# --------------------
-# PREDICTION MODEL
-# --------------------
-st.subheader("🤖 Salary Prediction")
+
+st.subheader("Salary Prediction")
 
 if "salary_usd" in df_filtered.columns and "experience_yrs" in df_filtered.columns:
     X = df_filtered[["experience_yrs"]].fillna(0)
@@ -201,12 +179,12 @@ if "salary_usd" in df_filtered.columns and "experience_yrs" in df_filtered.colum
 
         exp_input = st.slider("Select Experience (Years)", 0, 20, 3)
         pred_salary = model.predict([[exp_input]])[0]
-        st.success(f"💰 Predicted Salary for {exp_input} years: **${pred_salary:,.0f} USD**")
+        st.success(f"Predicted Salary for {exp_input} years: **${pred_salary:,.0f} USD**")
 
 # --------------------
 # DIAGNOSIS
 # --------------------
-st.subheader("🔎 Diagnosis (Factors Affecting Salary)")
+st.subheader("Diagnosis (Factors Affecting Salary)")
 
 if "salary_usd" in df_filtered.columns:
     corr = df_filtered.corr(numeric_only=True)
@@ -214,14 +192,11 @@ if "salary_usd" in df_filtered.columns:
         fig3 = px.imshow(corr, text_auto=True, title="Correlation Heatmap")
         st.plotly_chart(fig3, use_container_width=True)
 
-    st.write("✅ **Observation:** Salary is positively correlated with experience. Other factors may vary based on dataset.")
+    st.write("**Observation:** Salary is positively correlated with experience. Other factors may vary based on dataset.")
 
 st.write("---")
 
-# --------------------
-# FINAL DATA-DRIVEN INSIGHTS
-# --------------------
-st.subheader("📌 Data-Driven Insights – AI Job Market 2025")
+st.subheader("Data-Driven Insights – AI Job Market 2025")
 
 if not df_filtered.empty:
     if "company_location" in df_filtered.columns:
@@ -240,20 +215,20 @@ if not df_filtered.empty:
         fig_jobs = px.bar(top_salary_jobs, title="Top 10 Job Titles by Average Salary")
         st.plotly_chart(fig_jobs, use_container_width=True)
 
-    st.markdown("### 🔑 Key Observations")
+    st.markdown("### Key Observations")
     obs = []
 
     if "company_location" in df_filtered.columns and "salary_usd" in df_filtered.columns:
         best_loc = df_filtered.groupby("company_location")["salary_usd"].mean().idxmax()
-        obs.append(f"💰 Highest average salary location: **{best_loc}**")
+        obs.append(f"Highest average salary location: **{best_loc}**")
 
     if "experience_yrs" in df_filtered.columns and "salary_usd" in df_filtered.columns:
         corr = df_filtered[["experience_yrs", "salary_usd"]].corr().iloc[0,1]
-        obs.append(f"📈 Salary correlation with experience: **{corr:.2f}** (positive correlation)")
+        obs.append(f"Salary correlation with experience: **{corr:.2f}** (positive correlation)")
 
     if "job_title" in df_filtered.columns and "salary_usd" in df_filtered.columns:
         high_salary_job = df_filtered.groupby("job_title")["salary_usd"].mean().idxmax()
-        obs.append(f"🏆 Top paying role: **{high_salary_job}**")
+        obs.append(f"Top paying role: **{high_salary_job}**")
 
     for o in obs:
         st.markdown(f"- {o}")
