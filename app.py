@@ -239,7 +239,7 @@ else:
 st.write("---")
 st.subheader("Ask AI about Job Data")
 
-client = openai.OpenAI(api_key=st.secrets["ps-yyyy"])
+client = openai.OpenAI(api_key=st.secrets["sk-xxxx"])
 
 user_question = st.text_input("Ask something about the dataset")
 
