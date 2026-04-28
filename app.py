@@ -21,7 +21,6 @@ st.set_page_config(page_title="GenAIlytics: AI Job Market Analyzer", layout="wid
 st.markdown("<h1 style='text-align:center;color:#4CAF50;'>📊 GenAIlytics: AI Job Market Analyzer</h1>", unsafe_allow_html=True)
 st.write("---")
 # --------------------
-# CLEAN DATA FUNCTION (पहले define करो)
 # --------------------
 @st.cache_data
 def clean_data(df: pd.DataFrame):
@@ -29,7 +28,6 @@ def clean_data(df: pd.DataFrame):
 
 
 # --------------------
-# LOAD DATA FUNCTION (clean_data के बाद)
 # --------------------
 @st.cache_data
 def load_data():
