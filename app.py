@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import requests
+import io
 import re
 import nltk
 import plotly.express as px
@@ -8,230 +10,271 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 
+# NLTK
 nltk.download("stopwords", quiet=True)
 
 # --------------------
 # APP CONFIG
 # --------------------
-st.set_page_config(page_title="GenAIlytics", layout="wide")
+st.set_page_config(page_title="GenAIlytics: AI Job Market Analyzer", layout="wide")
 
-st.title("📊 AI Job Market Analyzer")
+st.markdown("<h1 style='text-align:center;color:#4CAF50;'>📊 GenAIlytics: AI Job Market Analyzer</h1>", unsafe_allow_html=True)
 st.write("---")
-
 # --------------------
-# CLEAN DATA
+# CLEAN DATA FUNCTION (पहले define करो)
 # --------------------
 @st.cache_data
-def clean_data(df):
-    df = df.copy()
-
-    # remove duplicate columns
-    df = df.loc[:, ~df.columns.duplicated()]
-    df.columns = [c.strip().lower() for c in df.columns]
-
-    # rename carefully
-    rename_map = {}
-    for c in df.columns:
-        if "job" in c and "title" in c:
-            rename_map[c] = "job_title"
-        elif "company" in c and "location" in c:
-            rename_map[c] = "company_location"
-        elif "salary" in c and "usd" in c:
-            rename_map[c] = "salary_usd"
-        elif c == "experience_level":
-            rename_map[c] = "experience_level"
-        elif c == "years_experience":
-            rename_map[c] = "experience_yrs"
-
-    df = df.rename(columns=rename_map)
-
-    # remove duplicates again (important)
-    df = df.loc[:, ~df.columns.duplicated()]
-
-    # salary cleaning
-    if "salary_usd" in df.columns:
-        df["salary_usd"] = df["salary_usd"].astype(str).apply(
-            lambda x: float(re.sub(r"[^0-9.]", "", x)) if re.search(r"\d", x) else np.nan
-        )
-
-    # experience parsing
-    def parse_exp(x):
-        s = str(x).lower()
-        m = re.search(r"(\d+)", s)
-        if m:
-            return float(m.group(1))
-        if "senior" in s:
-            return 7
-        if "mid" in s:
-            return 3
-        if "entry" in s or "junior" in s:
-            return 1
-        return np.nan
-
-    # prefer years_experience if exists
-    if "experience_yrs" in df.columns:
-        df["experience_yrs"] = pd.to_numeric(df["experience_yrs"], errors="coerce")
-    elif "experience_level" in df.columns:
-        df["experience_yrs"] = df["experience_level"].apply(parse_exp)
-
-    # fill missing
-    if "job_title" in df.columns:
-        df["job_title"] = df["job_title"].fillna("Unknown")
-
-    if "company_location" in df.columns:
-        df["company_location"] = df["company_location"].fillna("Unknown")
-
-    # remove outliers
-    if "salary_usd" in df.columns and df["salary_usd"].notna().any():
-        hi = df["salary_usd"].quantile(0.995)
-        df = df[df["salary_usd"] <= hi]
-
-    df.reset_index(drop=True, inplace=True)
-    return df
+def clean_data(df: pd.DataFrame):
+    # ... आपका clean_data वाला पूरा code यहाँ ...
+    return df
 
 
 # --------------------
-# LOAD DATA
+# LOAD DATA FUNCTION (clean_data के बाद)
 # --------------------
 @st.cache_data
 def load_data():
-    try:
-        return pd.read_csv("jobs_data.csv")
-    except:
-        uploaded = st.sidebar.file_uploader("Upload CSV", type=["csv"])
-        if uploaded:
-            return pd.read_csv(uploaded)
-    st.stop()
+    try:
+        df_local = pd.read_csv("jobs_data.csv")
+        st.sidebar.success("✅ Loaded local 'jobdata.csv'")
+        return df_local
+    except FileNotFoundError:
+        st.sidebar.warning("⚠️ Local file 'jobdata.csv' not found. Please upload CSV below.")
+
+    uploaded = st.sidebar.file_uploader("Upload your CSV file", type=["csv"])
+    if uploaded is not None:
+        st.sidebar.success("✅ Uploaded CSV loaded successfully!")
+        return pd.read_csv(uploaded)
+
+    st.error("❌ No dataset available. Please provide 'jobdata.csv' locally or upload a file.")
+    return pd.DataFrame()
 
 
+# --------------------
+# LOAD + CLEAN
+# --------------------
 df = load_data()
-df = clean_data(df)
+if not df.empty:
+    df = clean_data(df)
+else:
+    st.stop()
+
+
+
+
+
+@st.cache_data
+def clean_data(df: pd.DataFrame):
+    df = df.copy()
+
+    # 🔥 Remove duplicate columns
+    df = df.loc[:, ~df.columns.duplicated()]
+
+    df.columns = [c.strip().lower() for c in df.columns]
+
+    rename_map = {}
+    for c in df.columns:
+        if "job" in c and "title" in c:
+            rename_map[c] = "job_title"
+        if "company" in c and "location" in c:
+            rename_map[c] = "company_location"
+        if "salary" in c and "usd" in c:
+            rename_map[c] = "salary_usd"
+        if "experience" in c:
+            rename_map[c] = "experience_level"
+    df = df.rename(columns=rename_map)
+
+    if "salary_usd" in df.columns:
+        def to_float(x):
+            try:
+                return float(re.sub(r"[^0-9.]", "", str(x)))
+            except:
+                return np.nan
+        df["salary_usd"] = df["salary_usd"].apply(to_float)
+
+    def parse_exp(x):
+        try:
+            s = str(x).lower()
+            m = re.search(r"(\d+)", s)
+            if m: return float(m.group(1))
+            if "senior" in s: return 7.0
+            if "mid" in s: return 3.0
+            if "entry" in s or "junior" in s: return 1.0
+        except:
+            return np.nan
+        return np.nan
+
+    if "experience_level" in df.columns:
+        df["experience_yrs"] = df["experience_level"].apply(parse_exp)
+
+    if "job_title" in df.columns:
+        df["job_title"] = df["job_title"].fillna("Unknown")
+    if "company_location" in df.columns:
+        df["company_location"] = df["company_location"].fillna("Unknown")
+
+    if "salary_usd" in df.columns and df["salary_usd"].notna().any():
+        hi = df["salary_usd"].quantile(0.995)
+        df = df[df["salary_usd"] <= hi]
+
+    df.reset_index(drop=True, inplace=True)
+    return df
 
 # --------------------
-# FILTERS
-# --------------------
-st.sidebar.header("Filters")
+st.sidebar.header("🔎 Filters")
 
 job_filter = st.sidebar.multiselect(
-    "Job Title",
-    df["job_title"].unique() if "job_title" in df.columns else []
+    "Select Job Title",
+    options=df["job_title"].unique() if "job_title" in df.columns else [],
+    default=None,
 )
 
 loc_filter = st.sidebar.multiselect(
-    "Location",
-    df["company_location"].unique() if "company_location" in df.columns else []
+    "Select Location",
+    options=df["company_location"].unique() if "company_location" in df.columns else [],
+    default=None,
 )
 
 salary_min, salary_max = st.sidebar.slider(
-    "Salary Range",
-    int(df["salary_usd"].min()) if "salary_usd" in df.columns else 0,
-    int(df["salary_usd"].max()) if "salary_usd" in df.columns else 100000,
-    (
-        int(df["salary_usd"].min()) if "salary_usd" in df.columns else 0,
-        int(df["salary_usd"].max()) if "salary_usd" in df.columns else 100000
-    )
+    "Salary Range (USD)",
+    min_value=int(df["salary_usd"].min()) if "salary_usd" in df.columns else 0,
+    max_value=int(df["salary_usd"].max()) if "salary_usd" in df.columns else 100000,
+    value=(
+        int(df["salary_usd"].min()) if "salary_usd" in df.columns else 0,
+        int(df["salary_usd"].max()) if "salary_usd" in df.columns else 100000,
+    ),
 )
 
+# Apply filters
 df_filtered = df.copy()
-
 if job_filter:
-    df_filtered = df_filtered[df_filtered["job_title"].isin(job_filter)]
-
+    df_filtered = df_filtered[df_filtered["job_title"].isin(job_filter)]
 if loc_filter:
-    df_filtered = df_filtered[df_filtered["company_location"].isin(loc_filter)]
-
+    df_filtered = df_filtered[df_filtered["company_location"].isin(loc_filter)]
 if "salary_usd" in df_filtered.columns:
-    df_filtered = df_filtered[
-        (df_filtered["salary_usd"] >= salary_min) &
-        (df_filtered["salary_usd"] <= salary_max)
-    ]
+    df_filtered = df_filtered[
+        (df_filtered["salary_usd"] >= salary_min) & (df_filtered["salary_usd"] <= salary_max)
+    ]
 
 # --------------------
 # KPIs
 # --------------------
-st.subheader("KPIs")
+st.subheader("📌 Descriptive Statistics & KPIs")
+if not df_filtered.empty and "salary_usd" in df_filtered.columns:
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Average Salary (USD)", f"${df_filtered['salary_usd'].mean():,.0f}")
+    c2.metric("Max Salary (USD)", f"${df_filtered['salary_usd'].max():,.0f}")
+    c3.metric("Dataset Size", f"{len(df_filtered):,} records")
+
+    st.dataframe(df_filtered.describe(include="all"))
+
+st.write("---")
+
+# --------------------
+# VISUAL ANALYSIS
+# --------------------
+st.subheader("📊 Analysis (Filtered)")
+
+if "salary_usd" in df_filtered.columns and "experience_yrs" in df_filtered.columns:
+    fig = px.scatter(df_filtered, x="experience_yrs", y="salary_usd",
+                     title="Experience vs Salary", opacity=0.6,
+                     trendline="ols")
+    st.plotly_chart(fig, use_container_width=True)
+
+if "job_title" in df_filtered.columns:
+    top_jobs = df_filtered["job_title"].value_counts().head(10)
+    fig2 = px.bar(top_jobs, title="Top Job Titles")
+    st.plotly_chart(fig2, use_container_width=True)
+
+st.write("---")
+
+# --------------------
+# PREDICTION MODEL
+# --------------------
+# --------------------
+# PREDICTION MODEL
+# --------------------
+st.subheader("🤖 Salary Prediction")
+
+if "salary_usd" in df_filtered.columns and "experience_yrs" in df_filtered.columns:
+    X = df_filtered[["experience_yrs"]].fillna(0)
+    y = df_filtered["salary_usd"]
+
+    if len(X) > 10:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        model = RandomForestRegressor(random_state=42)
+        model.fit(X_train, y_train)
+        preds = model.predict(X_test)
+
+        st.write(f"**R² Score:** {r2_score(y_test, preds):.2f} | **MAE:** {mean_absolute_error(y_test, preds):.0f}")
+
+        exp_input = st.slider("Select Experience (Years)", 0, 20, 3)
+        pred_salary = model.predict([[exp_input]])[0]
+        st.success(f"💰 Predicted Salary for {exp_input} years: **${pred_salary:,.0f} USD**")
+
+
+# --------------------
+# DIAGNOSIS
+# --------------------
+st.subheader("🔎 Diagnosis (Factors Affecting Salary)")
+
+if "salary_usd" in df_filtered.columns:
+    corr = df_filtered.corr(numeric_only=True)
+    if not corr.empty:
+        fig3 = px.imshow(corr, text_auto=True, title="Correlation Heatmap")
+        st.plotly_chart(fig3, use_container_width=True)
+
+    st.write("✅ **Observation:** Salary is positively correlated with experience. Other factors may vary based on dataset.")
+
+st.write("---")
+
+# --------------------
+# FINAL DATA-DRIVEN INSIGHTS
+# --------------------
+st.subheader("📌 Data-Driven Insights – AI Job Market 2025")
 
 if not df_filtered.empty:
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Avg Salary", f"${df_filtered['salary_usd'].mean():,.0f}")
-    c2.metric("Max Salary", f"${df_filtered['salary_usd'].max():,.0f}")
-    c3.metric("Records", len(df_filtered))
+    # 1️⃣ Top Locations by Number of Jobs
+    if "company_location" in df_filtered.columns:
+        top_locs = df_filtered["company_location"].value_counts().head(10)
+        fig_loc = px.bar(top_locs, title="Top Locations by Job Openings")
+        st.plotly_chart(fig_loc, use_container_width=True)
 
-# --------------------
-# RECOMMENDATION
-# --------------------
-st.write("---")
-st.subheader("Job Recommendation")
+    # 2️⃣ Average Salary by Experience Level
+    if "experience_yrs" in df_filtered.columns and "salary_usd" in df_filtered.columns:
+        avg_salary_exp = df_filtered.groupby("experience_yrs")["salary_usd"].mean().reset_index()
+        fig_exp = px.line(avg_salary_exp, x="experience_yrs", y="salary_usd",
+                          title="Average Salary vs Experience (Years)", markers=True)
+        st.plotly_chart(fig_exp, use_container_width=True)
 
-user_exp = st.slider("Experience", 0, 20, 2)
+    # 3️⃣ Top Job Titles by Salary
+    if "job_title" in df_filtered.columns and "salary_usd" in df_filtered.columns:
+        top_salary_jobs = df_filtered.groupby("job_title")["salary_usd"].mean().sort_values(ascending=False).head(10)
+        fig_jobs = px.bar(top_salary_jobs, title="Top 10 Job Titles by Average Salary")
+        st.plotly_chart(fig_jobs, use_container_width=True)
 
-rec = df[
-    (df["experience_yrs"] >= user_exp - 1) &
-    (df["experience_yrs"] <= user_exp + 2)
-]["job_title"].value_counts().head(5)
+    # 4️⃣ Key Observations (Dynamic)
+    st.markdown("### 🔑 Key Observations")
+    obs = []
+    # Highest paying location
+    if "company_location" in df_filtered.columns and "salary_usd" in df_filtered.columns:
+        best_loc = df_filtered.groupby("company_location")["salary_usd"].mean().idxmax()
+        obs.append(f"💰 Highest average salary location: **{best_loc}**")
+    
+    # Experience impact
+    if "experience_yrs" in df_filtered.columns and "salary_usd" in df_filtered.columns:
+        corr = df_filtered[["experience_yrs", "salary_usd"]].corr().iloc[0,1]
+        obs.append(f"📈 Salary correlation with experience: **{corr:.2f}** (positive correlation)")
 
-st.write(rec.index.tolist())
+    # Job titles with high salaries
+    if "job_title" in df_filtered.columns and "salary_usd" in df_filtered.columns:
+        high_salary_job = df_filtered.groupby("job_title")["salary_usd"].mean().idxmax()
+        obs.append(f"🏆 Top paying role: **{high_salary_job}**")
 
-# --------------------
-# VISUALS
-# --------------------
-st.write("---")
-st.subheader("Analysis")
+    for o in obs:
+        st.markdown(f"- {o}")
 
-if "experience_yrs" in df_filtered.columns:
-    st.plotly_chart(
-        px.scatter(df_filtered, x="experience_yrs", y="salary_usd", trendline="ols"),
-        use_container_width=True
-    )
+else:
+    st.info("No data available for generating insights. Please adjust filters or upload a dataset.")
 
-st.plotly_chart(
-    px.bar(df_filtered["job_title"].value_counts().head(10)),
-    use_container_width=True
-)
-
-# --------------------
-# ML MODEL
-# --------------------
-st.write("---")
-st.subheader("Salary Prediction")
-
-df_model = pd.get_dummies(df_filtered, columns=["job_title", "company_location"], drop_first=True)
-
-X = df_model.drop("salary_usd", axis=1).fillna(0)
-y = df_model["salary_usd"]
-
-if len(X) > 10:
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-
-    model = RandomForestRegressor()
-    model.fit(X_train, y_train)
-
-    preds = model.predict(X_test)
-
-    st.write("R2:", round(r2_score(y_test, preds), 2))
-    st.write("MAE:", int(mean_absolute_error(y_test, preds)))
-
-    exp_input = st.slider("Predict Salary (Experience)", 0, 20, 3)
-
-    input_df = pd.DataFrame([[exp_input]], columns=["experience_yrs"])
-
-    for col in X.columns:
-        if col not in input_df.columns:
-            input_df[col] = 0
-
-    input_df = input_df[X.columns]
-
-    pred = model.predict(input_df)[0]
-
-    st.success(f"Predicted Salary: ${pred:,.0f}")
-
-# --------------------
-# INSIGHTS
-# --------------------
-st.write("---")
-st.subheader("Quick Insights")
-
-if st.button("Generate"):
-    st.success(f"Top Role: {df['job_title'].value_counts().idxmax()}")
-    st.success(f"Best Location: {df.groupby('company_location')['salary_usd'].mean().idxmax()}")
-    st.success(f"Correlation: {df[['experience_yrs','salary_usd']].corr().iloc[0,1]:.2f}")
+What problem does the project solve
