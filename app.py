@@ -25,7 +25,6 @@ st.write("---")
 # --------------------
 @st.cache_data
 def clean_data(df: pd.DataFrame):
-    # ... आपका clean_data वाला पूरा code यहाँ ...
     return df
 
 
@@ -277,4 +276,3 @@ if not df_filtered.empty:
 else:
     st.info("No data available for generating insights. Please adjust filters or upload a dataset.")
 
-What problem does the project solve
