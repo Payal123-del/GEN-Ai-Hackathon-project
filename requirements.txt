@@ -5,5 +5,5 @@ requests
 nltk
 plotly
 scikit-learn
-
+openai
 
