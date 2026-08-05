@@ -335,7 +335,7 @@ if not df_filtered.empty:
             )
         st.markdown("<div style='margin-bottom: 1rem;'></div>", unsafe_allow_html=True)
 
-    st.dataframe(df_filtered.describe(include="all"), use_container_width=True)
+    st.dataframe(df_filtered.describe(include="all").astype(str), use_container_width=True)
 
 # --------------------
 # VISUAL ANALYSIS
