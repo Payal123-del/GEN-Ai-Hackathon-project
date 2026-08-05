@@ -1,1 +1,1 @@
-website run at: [streamlit run app.py](http://localhost:8501/)
+website run at: http://localhost:8501/
