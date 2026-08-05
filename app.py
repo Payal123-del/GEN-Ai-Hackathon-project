@@ -9,7 +9,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 
-nltk.download("stopwords", quiet=True)
+try:
+    nltk.download("stopwords", quiet=True)
+except Exception:
+    pass
 
 # --------------------
 # APP CONFIG & STYLING
@@ -243,6 +246,8 @@ st.sidebar.markdown('<h4 style="color: #1E293B; font-weight: 600; margin-bottom:
 uploaded = st.sidebar.file_uploader("Upload CSV Dataset", type=["csv"])
 
 raw_df = pd.DataFrame()
+local_csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "jobs_data.csv")
+
 if uploaded is not None:
     raw_df = load_data(uploaded)
     if not raw_df.empty:
@@ -251,6 +256,12 @@ if uploaded is not None:
         st.sidebar.markdown('<div class="status-box-error">Failed to read uploaded CSV</div>', unsafe_allow_html=True)
 elif os.path.exists("jobs_data.csv"):
     raw_df = load_data("jobs_data.csv")
+    if not raw_df.empty:
+        st.sidebar.markdown('<div class="status-box-success">Loaded local dataset (jobs_data.csv)</div>', unsafe_allow_html=True)
+    else:
+        st.sidebar.markdown('<div class="status-box-warning">Local file found but could not be parsed</div>', unsafe_allow_html=True)
+elif os.path.exists(local_csv_path):
+    raw_df = load_data(local_csv_path)
     if not raw_df.empty:
         st.sidebar.markdown('<div class="status-box-success">Loaded local dataset (jobs_data.csv)</div>', unsafe_allow_html=True)
     else:
