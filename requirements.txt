@@ -1,7 +1,9 @@
 streamlit
+starlette<1.4.0
 pandas
 numpy
 plotly
 scikit-learn
 nltk
 statsmodels
+
